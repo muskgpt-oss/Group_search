@@ -12,13 +12,6 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# Data and Databases
-data/*
-!data/chat_history.txt
-!data/.keep
-*.db
-*.sqlite3
-
 # OS generated files
 .DS_Store
 .DS_Store?
