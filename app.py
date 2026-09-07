@@ -196,9 +196,13 @@ with tab_search:
                     # Highlight words from the search query
                     highlighted_text = res["text"]
                     if query_input:
-                        words = [w for w in query_input.split() if len(w) > 2]
+                        # Extract core keywords, ignoring common stop words
+                        stop_words = {"the", "and", "for", "with", "about", "what", "where", "when", "why", "who", "how", "this", "that", "there", "their", "are", "was", "were"}
+                        words = [w.lower() for w in query_input.split() if len(w) > 2 and w.lower() not in stop_words]
+                        
+                        # Use partial word matching to highlight related forms (e.g. exam -> exams)
                         for w in words:
-                            highlighted_text = re.sub(f"(?i)({re.escape(w)})", r"<mark style='background-color: #fef08a; padding: 0 4px; border-radius: 4px; color: #854d0e;'>\g<1></mark>", highlighted_text)
+                            highlighted_text = re.sub(f"(?i)(\b\w*{re.escape(w)}\w*\b)", r"<mark style='background-color: #fef08a; padding: 0 4px; border-radius: 4px; color: #854d0e;'>\g<1></mark>", highlighted_text)
                             
                     st.markdown(f"{chunk_title}<br><div style='background-color: #f8f9fa; padding: 12px; border-radius: 6px; border: 1px solid #e9ecef; margin-top: 5px; margin-bottom: 15px; white-space: pre-wrap; font-size: 0.95rem; line-height: 1.5;'>{highlighted_text}</div>", unsafe_allow_html=True)
 
