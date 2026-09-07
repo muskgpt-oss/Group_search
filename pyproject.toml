@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "it-geek-search"
+version = "0.1.0"
+description = "Context-Aware Hinglish Group Chat Semantic Search Engine"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "pandas>=2.2.2",
+    "numpy>=2.0.0",
+    "streamlit>=1.38.0",
+    "pytest>=8.3.2",
+    "sentence-transformers>=3.2.1",
+    "scikit-learn>=1.5.1",
+    "rank-bm25>=0.2.2",
+    "chromadb>=0.5.24"
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["it_geek_search*"]
+

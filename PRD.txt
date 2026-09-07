@@ -1,0 +1,53 @@
+Project Title: Context-Aware Hinglish Group Chat Semantic Search Engine
+Time Budget: 10 Hours
+
+1. Objective & Overview
+Build a local semantic and hybrid search tool over a messy, code-mixed (Hinglish) group chat dataset. The system must process 4,000+ messages across 8 participants over 6 months, supporting semantic intent, author attribution, temporal filtering, and contextual message grouping.
+
+2. Core Features & Functional Requirements
+
+Synthetic Corpus Generation: Generate a local dataset of 4,000+ messages featuring 8 participants, 6 months of chat history, typos, shorthand, and code-mixed Hinglish (e.g., project planning, casual banter, scheduling).
+
+Conversational Chunking: Group raw messages into sliding context windows (e.g., blocks of 5–10 sequential messages) to preserve conversational context and replies.
+
+Multi-Intent Query Handling:
+
+Semantic Queries: Match conceptual meaning rather than exact keywords (e.g., finding the decision point for a weekend hackathon when the text says "code-athon final karlo").
+
+Attributed Queries: Filter and search messages by specific senders (e.g., "What did Rohan say about the server costs?").
+
+Temporal Queries: Scope retrieval by timeframes (e.g., "What did we discuss back in March?").
+
+Hybrid Retrieval: Combine vector embeddings (for semantic/Hinglish understanding) with keyword search (BM25 for exact names, dates, or technical terms).
+
+Context-Rich Output: Return the exact matching message block along with surrounding conversation history for complete clarity.
+
+Test Suite: Include 40 benchmark queries (with at least 8 queries where the target message contains zero overlapping words with the prompt text).
+
+3. Technology Stack
+
+Language: Python 3.10+
+
+Data Manipulation: Pandas
+
+Embeddings & LLM: OpenAI API (text-embedding-3-small) or local HuggingFace multilingual embeddings (paraphrase-multilingual-MiniLM-L12-v2)
+
+Vector Database: ChromaDB (lightweight, local storage)
+
+Search & Retrieval: Custom pipeline combining vector similarity with metadata filtering (sender, timestamp)
+
+UI/Demo: Streamlit (for a clean visual search interface)
+
+4. Execution Timeline (10-Hour Roadmap)
+
+Hour 1–2: Write data generation script to output 4,000 structured chat messages and curate the 40 test queries.
+
+Hour 3–4: Implement message preprocessing and sliding-window chunking scripts.
+
+Hour 5–6: Set up ChromaDB, generate vector embeddings, and inject metadata tags.
+
+Hour 7–8: Build the retrieval engine handling semantic search, author filters, and temporal ranges.
+
+Hour 9: Create a minimal Streamlit UI to showcase search results with surrounding context.
+
+Hour 10: Run validation tests against the 40 queries, polish documentation, and publish code to a public GitHub repository.
