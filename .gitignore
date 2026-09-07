@@ -13,7 +13,9 @@ __pycache__/
 *$py.class
 
 # Data and Databases
-data/
+data/*
+!data/chat_history.txt
+!data/.keep
 *.db
 *.sqlite3
 
