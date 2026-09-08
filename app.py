@@ -189,8 +189,20 @@ with tab_search:
                 dense_weight=dense_weight, sparse_weight=sparse_weight,
             )
 
+
         st.divider()
         st.markdown(f"### 📑 Results ({len(results)} found)")
+        
+        # 4. Small one-time legend
+        st.markdown(
+            """
+            <div style='margin-bottom: 1rem;'>
+                <span style='font-size: 0.85rem; color: #475569; font-weight: 600; margin-right: 15px;'>Highlight Legend:</span>
+                <span style='background-color: #fef08a; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; color: #854d0e; margin-right: 10px;'>Exact keyword match</span>
+                <span style='background-color: #e0e7ff; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; color: #3730a3;'>Matched by meaning</span>
+            </div>
+            """, unsafe_allow_html=True
+        )
 
         # 7. Proper empty state
         if not results:
