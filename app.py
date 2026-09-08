@@ -5,6 +5,7 @@ import re
 from datetime import datetime
 import pandas as pd
 import streamlit as st
+import hashlib
 
 from it_geek_search.loader import load_chat_from_txt
 from it_geek_search.generator import generate_benchmark_queries
@@ -23,15 +24,9 @@ st.set_page_config(
 st.markdown(
     '''
     <style>
-    /* Hide header and footer for demo cleanliness */
     header {visibility: hidden;}
     footer {visibility: hidden;}
-    
-    /* Clean Typography & Spacing */
-    .block-container {
-        padding-top: 2rem !important;
-        padding-bottom: 3rem !important;
-    }
+    .block-container { padding-top: 2rem !important; padding-bottom: 3rem !important; }
     h1, h2, h3 { color: #1e293b; font-weight: 700; letter-spacing: -0.5px; }
     .stat-strip {
         display: flex; gap: 20px; align-items: center; 
@@ -39,24 +34,13 @@ st.markdown(
         border-radius: 8px; border: 1px solid #e2e8f0;
         margin-bottom: 2rem;
     }
-    .stat-item {
-        font-size: 0.9rem; color: #475569;
-    }
-    .stat-value {
-        font-size: 1.1rem; font-weight: 600; color: #4f46e5;
-    }
-    .match-meaning-badge {
-        background-color: #f3e8ff; color: #7e22ce;
-        padding: 4px 10px; border-radius: 99px;
-        font-size: 0.75rem; font-weight: 600; display: inline-block;
-        margin-bottom: 8px;
-    }
+    .stat-item { font-size: 0.9rem; color: #475569; }
+    .stat-value { font-size: 1.1rem; font-weight: 600; color: #4f46e5; }
     </style>
     ''',
     unsafe_allow_html=True,
 )
 
-# Backend Initialization (Untouched Logic)
 DATA_DIR = "./data"
 CHROMA_DIR = os.path.join(DATA_DIR, "chroma")
 DB_PATH = os.path.join(DATA_DIR, "chat_history.db")
@@ -76,7 +60,6 @@ def get_search_index(force_rebuild: bool = False) -> SearchIndex:
 
 index = get_search_index()
 
-# 2. Header & Stats Strip
 st.title("🔍 Context-Aware Semantic Search")
 
 if index and index.db:
@@ -98,12 +81,10 @@ if index and index.db:
             unsafe_allow_html=True
         )
 
-# Standardized Tabs
 tab_search, tab_benchmarks, tab_browse, tab_data = st.tabs([
     "🔍 Search & Chat", "📊 Benchmark & Evaluation", "💬 Browse Conversations", "🗄️ Database & Stats"
 ])
 
-# 5. Sidebar Restructuring
 with st.sidebar:
     st.markdown("### ⚙️ Dashboard Settings")
     
@@ -137,9 +118,12 @@ with st.sidebar:
             get_search_index(force_rebuild=True)
             st.success("Rebuilt successfully!")
 
-# Tab 1: Search
+def get_sender_color(name: str) -> str:
+    colors = ["#2563eb", "#db2777", "#16a34a", "#ea580c", "#8b5cf6", "#0d9488", "#b91c1c"]
+    hash_val = int(hashlib.md5(name.encode()).hexdigest(), 16)
+    return colors[hash_val % len(colors)]
+
 with tab_search:
-    # 3. Search Box Container
     with st.container(border=True):
         st.markdown("### Search the Corpus")
         
@@ -151,7 +135,6 @@ with tab_search:
             "502 bad gateway auth-worker memory leak container OOM"
         ]
         
-        # Grid layout for inputs inside container
         search_col, preset_col = st.columns([3, 1])
         with preset_col:
             selected_sample = st.selectbox("Or try an example...", ["Custom"] + sample_queries, label_visibility="collapsed")
@@ -165,7 +148,6 @@ with tab_search:
                 label_visibility="collapsed"
             )
 
-    # Retrieval Execution
     effective_sender = None if selected_sender == "All" else selected_sender
     effective_start = filter_start.isoformat() if filter_start else None
     effective_end = filter_end.isoformat() if filter_end else None
@@ -180,7 +162,6 @@ with tab_search:
             )
 
     if query_input:
-        # 7. Add a proper spinner
         with st.spinner("Analyzing semantic and lexical matches..."):
             results = search_messages(
                 index, query=query_input, sender=effective_sender,
@@ -189,14 +170,12 @@ with tab_search:
                 dense_weight=dense_weight, sparse_weight=sparse_weight,
             )
 
-
         st.divider()
         st.markdown(f"### 📑 Results ({len(results)} found)")
         
-        # 4. Small one-time legend
         st.markdown(
             """
-            <div style='margin-bottom: 1rem;'>
+            <div style='margin-bottom: 1.5rem;'>
                 <span style='font-size: 0.85rem; color: #475569; font-weight: 600; margin-right: 15px;'>Highlight Legend:</span>
                 <span style='background-color: #fef08a; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; color: #854d0e; margin-right: 10px;'>Exact keyword match</span>
                 <span style='background-color: #e0e7ff; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; color: #3730a3;'>Matched by meaning</span>
@@ -204,52 +183,95 @@ with tab_search:
             """, unsafe_allow_html=True
         )
 
-        # 7. Proper empty state
         if not results:
             st.warning("No messages matched the query and filters. Try adjusting your parameters.", icon="⚠️")
         else:
             for i, res in enumerate(results, 1):
-                # 4. Result cards with horizontal progress bars & semantic match detection
                 with st.container(border=True):
                     header_col, score_col = st.columns([2, 1])
                     with header_col:
-                        st.markdown(f"**Chat Session:** `{res['session_id']}`")
+                        # Add Rank Number (#1, #2...)
+                        st.markdown(f"**#{i} | Chat Session:** `{res['session_id']}`")
                         st.caption(f"👥 Participants: {', '.join(res['participants'])}")
                     with score_col:
-                        # Normalize scores purely for visual bar rendering (backend logic untouched)
-                        # RRF is usually very small. BM25/Semantic vary. We cap for visual display.
-                        sem_val = min(1.0, res['semantic_score'])
-                        bm25_val = min(1.0, res['bm25_score'] / 10.0 if res['bm25_score'] > 0 else 0)
+                        # RRF fused score (typically 0.01 to 1.0)
+                        rrf_val = min(100, int((res['score'] / 1.5) * 100))
+                        if rrf_val < 1: rrf_val = min(100, int(res['score'] * 1000))
                         
-                        st.markdown(f"<span style='font-size: 0.8rem; font-weight: 600;'>Semantic Meaning (Score: {res['semantic_score']:.2f})</span>", unsafe_allow_html=True)
-                        st.progress(sem_val)
-                        st.markdown(f"<span style='font-size: 0.8rem; font-weight: 600;'>Exact Keyword (Score: {res['bm25_score']:.2f})</span>", unsafe_allow_html=True)
-                        st.progress(bm25_val)
+                        sem_val = min(100, int(res['semantic_score'] * 100))
+                        bm25_val = min(100, int((res['bm25_score'] / 15.0) * 100))
+                        
+                        st.markdown(
+                            f'''
+                            <div style="font-size: 0.75rem; font-weight: 600; color: #475569;">Combined Rank Score (RRF: {res['score']:.4f})</div>
+                            <div style="width: 100%; background-color: #f1f5f9; border-radius: 4px; margin-bottom: 6px;">
+                                <div style="width: {rrf_val}%; height: 6px; background-color: #0f172a; border-radius: 4px;"></div>
+                            </div>
+                            
+                            <div style="font-size: 0.75rem; font-weight: 600; color: #475569;">Semantic Meaning (Score: {res['semantic_score']:.2f})</div>
+                            <div style="width: 100%; background-color: #f1f5f9; border-radius: 4px; margin-bottom: 6px;">
+                                <div style="width: {sem_val}%; height: 6px; background-color: #4f46e5; border-radius: 4px;"></div>
+                            </div>
+                            
+                            <div style="font-size: 0.75rem; font-weight: 600; color: #475569;">Exact Keyword (Score: {res['bm25_score']:.2f})</div>
+                            <div style="width: 100%; background-color: #f1f5f9; border-radius: 4px; margin-bottom: 6px;">
+                                <div style="width: {bm25_val}%; height: 6px; background-color: #eab308; border-radius: 4px;"></div>
+                            </div>
+                            ''', 
+                            unsafe_allow_html=True
+                        )
 
                     st.markdown("---")
                     
                     raw_text = res["text"]
-                    highlighted_text = raw_text
                     
-                    # Apply regex highlights
                     stop_words = {"the", "and", "for", "with", "about", "what", "where", "when", "why", "who", "how", "this", "that", "there", "their", "are", "was", "were"}
-                    words = [w.lower() for w in query_input.split() if len(w) > 2 and w.lower() not in stop_words]
-                    for w in words:
-                        highlighted_text = re.sub(
-                            f"(?i)(\\b\\w*{re.escape(w)}\\w*\\b)", 
-                            r"<mark style='background-color: #fef08a; padding: 0 4px; border-radius: 4px; color: #854d0e;'>\g<1></mark>", 
-                            highlighted_text
-                        )
+                    query_words = [w.lower() for w in query_input.split() if len(w) > 2 and w.lower() not in stop_words]
                     
-                    # 4. Detect pure semantic match (no literal word overlap highlighted)
-                    is_semantic_only = (highlighted_text == raw_text)
-                    if is_semantic_only:
-                        st.markdown("<div class='match-meaning-badge'>✨ Matched by Meaning</div>", unsafe_allow_html=True)
+                    lines = raw_text.strip().split('\n')
+                    formatted_lines = []
+                    has_any_keyword_match = False
+                    
+                    for line in lines:
+                        if ":" not in line:
+                            formatted_lines.append(f"<div style='color: #475569; padding: 2px 0;'>{line}</div>")
+                            continue
+                            
+                        sender_part, msg_part = line.split(":", 1)
+                        sender_part = sender_part.strip()
+                        msg_part = msg_part.strip()
+                        
+                        highlighted_msg = msg_part
+                        for w in query_words:
+                            # Safely check for keyword match
+                            if re.search(r"\b\w*" + re.escape(w) + r"\w*\b", highlighted_msg, re.IGNORECASE):
+                                has_any_keyword_match = True
+                                highlighted_msg = re.sub(
+                                    r"(\b\w*" + re.escape(w) + r"\w*\b)", 
+                                    r"<mark style='background-color: #fef08a; padding: 0 4px; border-radius: 4px; color: #854d0e;'>\g<1></mark>", 
+                                    highlighted_msg,
+                                    flags=re.IGNORECASE
+                                )
+                        
+                        s_color = get_sender_color(sender_part)
+                        line_html = f"<div style='padding: 3px 0;'><strong style='color: {s_color};'>{sender_part}:</strong> <span style='color: #1e293b;'>{highlighted_msg}</span></div>"
+                        formatted_lines.append(line_html)
+                        
+                    is_semantic_only = not has_any_keyword_match
+                    
+                    if is_semantic_only and formatted_lines:
+                        center_idx = len(formatted_lines) // 2
+                        center_line = formatted_lines[center_idx]
+                        formatted_lines[center_idx] = f"<div style='background-color: #e0e7ff; padding: 4px 8px; border-radius: 6px; border-left: 3px solid #4f46e5; margin: 4px 0;'>{center_line}</div>"
+
+                    preview_html = "".join(formatted_lines)
                     
                     chunk_title = f"**Conversation Window (Chunk {res['chunk_id']}) - {res['timestamp'][:19]}**"
-                    st.markdown(f"{chunk_title}<br><div style='background-color: #f8fafc; padding: 16px; border-radius: 8px; font-size: 0.95rem; line-height: 1.6;'>{highlighted_text}</div>", unsafe_allow_html=True)
+                    st.markdown(f"{chunk_title}<br><div style='background-color: #f8fafc; padding: 12px 16px; border-radius: 8px; font-size: 0.95rem; line-height: 1.5; border: 1px solid #e2e8f0; margin-top: 6px; margin-bottom: 6px;'>{preview_html}</div>", unsafe_allow_html=True)
                     
-                    st.write("")
+                    if is_semantic_only:
+                        st.markdown("<div style='font-size: 0.85rem; color: #64748b; font-style: italic; margin-bottom: 12px; padding-left: 4px;'>No shared words with your query — matched by meaning.</div>", unsafe_allow_html=True)
+                    
                     with st.expander("💬 View Extended Thread Context (SQLite)"):
                         for msg in res.get("context", []):
                             is_target = msg.get("text") in raw_text
@@ -263,7 +285,6 @@ with tab_search:
                                 unsafe_allow_html=True
                             )
 
-# Tab 2: Benchmarks (Untouched logic, spaced out)
 with tab_benchmarks:
     st.header("Benchmark Test Suite (40 Queries)")
     st.write("Evaluates the hybrid search system across predefined queries.")
@@ -286,7 +307,6 @@ with tab_benchmarks:
         st.subheader("Detailed Query Results")
         st.dataframe(details[["id", "type", "zero_overlap", "prompt", "hit_rank", "latency_ms"]], use_container_width=True)
 
-# Tab 3: Browse
 with tab_browse:
     st.header("Browse Conversation Threads")
     st.divider()
@@ -323,7 +343,6 @@ with tab_browse:
         else:
             st.info("No messages in database.")
 
-# Tab 4: Data & Stats
 with tab_data:
     st.header("Storage & Analytics")
     st.divider()
@@ -331,7 +350,6 @@ with tab_data:
     if index.db:
         all_df = index.db.get_all_messages(as_df=True)
         if not all_df.empty:
-            # 6. Enhance the Stats tab with a timeline chart
             c1, c2 = st.columns(2)
             with c1:
                 st.metric("Total Stored Messages", f"{len(all_df):,}")
@@ -340,7 +358,6 @@ with tab_data:
             
             st.divider()
             st.subheader("📊 Message Activity Over Time")
-            # Convert timestamp to date for aggregation
             timeline_df = all_df.copy()
             timeline_df['Date'] = pd.to_datetime(timeline_df['timestamp']).dt.date
             daily_counts = timeline_df.groupby('Date').size()
