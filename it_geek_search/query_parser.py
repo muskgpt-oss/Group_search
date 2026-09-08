@@ -33,7 +33,7 @@ MONTH_MAP = {
 }
 
 
-def parse_query(query: str, default_year: int = 2025) -> ParsedQuery:
+def parse_query(query: str, default_year: int = 2026) -> ParsedQuery:
     """
     Parses a natural language query to extract:
     - Target sender (author attribution)
@@ -80,7 +80,7 @@ def parse_query(query: str, default_year: int = 2025) -> ParsedQuery:
     # 3. Extract named months (e.g., "in March", "around February")
     if not start_date:
         for month_name, month_num in MONTH_MAP.items():
-            month_pattern = rf"\b(?:in|around|back in|during|for)?\s*({month_name})(?:\s+(\d{4}))?\b"
+            month_pattern = rf"\b(?:in|around|back in|during|for)?\s*({month_name})(?:\s+(\d{{4}}))?\b"
             m = re.search(month_pattern, cleaned, re.IGNORECASE)
             if m:
                 year = int(m.group(2)) if m.group(2) else default_year
